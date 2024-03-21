@@ -1,23 +1,15 @@
 # helpers.py
-from __init__ import conn , cursor 
-# Function to list all available games
-def list_games(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Game")
-    games = cursor.fetchall()
-    for game in games:
-        print(game)
-    cursor.close()
 
-# Function to add a new game to the database
-def add_game(conn, game_name):
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Game (name) VALUES (?)", (game_name,))
-    conn.commit()
-    cursor.close()
+import sqlite3
+
+# Establish connection to the SQLite database
+def connect_to_database(database_file):
+    conn = sqlite3.connect(database_file)
+    return conn
 
 # Function to list all available stadiums
-def list_stadiums(conn):
+def list_stadiums():
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Stadium")
     stadiums = cursor.fetchall()
@@ -26,14 +18,16 @@ def list_stadiums(conn):
     cursor.close()
 
 # Function to add a new stadium to the database
-def add_stadium(conn, stadium_name, location):
+def add_stadium(stadium_name, location):
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO Stadium (name, location) VALUES (?, ?)", (stadium_name, location))
     conn.commit()
     cursor.close()
 
 # Function to list all available teams
-def list_teams(conn):
+def list_teams():
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Team")
     teams = cursor.fetchall()
@@ -42,33 +36,47 @@ def list_teams(conn):
     cursor.close()
 
 # Function to add a new team to the database
-def add_team(conn, team_name):
+def add_team(team_name):
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO Team (name) VALUES (?)", (team_name,))
     conn.commit()
     cursor.close()
 
-# Function to list all players in a specific team or all players across all teams
-def list_players(conn, team_id=None):
+# Function to list all players
+def list_players():
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
-    if team_id is None:
-        cursor.execute("SELECT * FROM Player")
-    else:
-        cursor.execute("SELECT * FROM Player WHERE team_id = ?", (team_id,))
+    cursor.execute("SELECT * FROM Player")
     players = cursor.fetchall()
     for player in players:
         print(player)
     cursor.close()
 
+# helpers.py
+
 # Function to add a new player to a team
 def add_player(conn, player_name, position, team_id):
     cursor = conn.cursor()
+    # Check if the player already exists in the database
+    cursor.execute("SELECT * FROM Player WHERE name = ?", (player_name,))
+    existing_player = cursor.fetchone()
+    if existing_player:
+        print(f"Player '{player_name}' already exists in the database.")
+        reassign = input("Do you want to reassign the player to a different team? (yes/no): ").lower()
+        if reassign == "yes":
+            team_id = input("Enter the ID of the new team: ")
+        else:
+            print("Player assignment canceled.")
+            return
     cursor.execute("INSERT INTO Player (name, position, team_id) VALUES (?, ?, ?)", (player_name, position, team_id))
     conn.commit()
     cursor.close()
 
+
 # Function to list all scheduled game fixtures
-def list_fixtures(conn):
+def list_fixtures():
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM GameFixture")
     fixtures = cursor.fetchall()
@@ -76,9 +84,29 @@ def list_fixtures(conn):
         print(fixture)
     cursor.close()
 
-# Function to schedule a new game fixture between two teams at a specific stadium and time
-def schedule_fixture(conn, game_id, stadium_id, team1_id, team2_id, datetime):
+# Function to schedule a new game fixture between two teams
+def schedule_fixture(game_date, game_time, game_venue, match_id, team1_id, team2_id):
+    conn = connect_to_database("sports.db")
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO GameFixture (game_id, stadium_id, team1_id, team2_id, datetime) VALUES (?, ?, ?, ?, ?)", (game_id, stadium_id, team1_id, team2_id, datetime))
+    cursor.execute("""
+        INSERT INTO GameFixture (game_date, game_time, game_venue, match_id, team1_id, team2_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (game_date, game_time, game_venue, match_id, team1_id, team2_id))
+    conn.commit()
+    cursor.close()
+
+# Function to cancel a scheduled game fixture
+def cancel_fixture(match_id):
+    conn = connect_to_database("sports.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM GameFixture WHERE match_id = ?", (match_id,))
+    conn.commit()
+    cursor.close()
+
+# Function to remove a player from the database
+def remove_player(player_id):
+    conn = connect_to_database("sports.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM Player WHERE id = ?", (player_id,))
     conn.commit()
     cursor.close()

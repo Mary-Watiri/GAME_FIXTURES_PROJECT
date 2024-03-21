@@ -1,11 +1,11 @@
 import sqlite3
 
-# Establish connection to the SQLite database
+# Function to establish a connection to the SQLite database
 def connect_to_database(database_file):
     conn = sqlite3.connect(database_file)
     return conn
 
-# Create the GameFixture table if it doesn't exist
+# Function to create the GameFixture table if it doesn't exist
 def create_game_fixture_table(conn):
     cursor = conn.cursor()
     cursor.execute("""
@@ -41,7 +41,11 @@ def insert_game_fixture(conn, game_date, game_time, game_venue, match_id, team_i
     conn.commit()
     cursor.close()
 
-# Example usage
+# Establish a connection to the SQLite database
 conn = connect_to_database("sports.db")
+
+# Create the GameFixture table if it doesn't exist
 create_game_fixture_table(conn)
+
+# Insert a new game fixture into the database
 insert_game_fixture(conn, "2024-04-01", "15:00", "Stadium A", 1, 1, 2)
