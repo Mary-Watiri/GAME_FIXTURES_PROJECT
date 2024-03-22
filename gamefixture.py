@@ -13,7 +13,7 @@ def create_game_fixture_table(conn):
             fixture_id INTEGER PRIMARY KEY,
             game_date TEXT,
             game_time TEXT,
-            game_venue TEXT,
+            game_venue INTEGER,
             match_id INTEGER,
             team1_id INTEGER,
             team2_id INTEGER,
@@ -27,18 +27,36 @@ def create_game_fixture_table(conn):
     conn.commit()
     cursor.close()
 
+
 # Function to insert a new game fixture into the database
-def insert_game_fixture(conn, game_date, game_time, game_venue, match_id, team_id1, team_id2):
+def insert_game_fixture(conn, game_date, game_time, stadium_id, match_id, team1_id, team2_id):
     cursor = conn.cursor()
-    # Fetch team names dynamically using the provided team IDs
-    team1_name = cursor.execute("SELECT name FROM Team WHERE id = ?", (team_id1,)).fetchone()[0]
-    team2_name = cursor.execute("SELECT name FROM Team WHERE id = ?", (team_id2,)).fetchone()[0]
-    fixture_description = f"{team1_name} vs {team2_name}"
+    # Fetch stadium name based on stadium_id
+    stadium_name = cursor.execute("SELECT name FROM Stadium WHERE id = ?", (stadium_id,)).fetchone()[0]
+    
+    # Check if the combination already exists
     cursor.execute("""
-        INSERT INTO GameFixture (game_date, game_time, game_venue, match_id, team1_id, team2_id, teams_playing)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (game_date, game_time, game_venue, match_id, team_id1, team_id2, fixture_description))
-    conn.commit()
+        SELECT COUNT(*) FROM GameFixture 
+        WHERE match_id = ? AND team1_id = ? AND team2_id = ?
+    """, (match_id, team1_id, team2_id))
+    count = cursor.fetchone()[0]
+    
+    if count > 0:
+        print("Error: This game fixture already exists.")
+    else:
+        # Fetch team names dynamically using the provided team IDs
+        team1_name = cursor.execute("SELECT name FROM Team WHERE id = ?", (team1_id,)).fetchone()[0]
+        team2_name = cursor.execute("SELECT name FROM Team WHERE id = ?", (team2_id,)).fetchone()[0]
+        fixture_description = f"{team1_name} vs {team2_name}"
+        
+        cursor.execute("""
+            INSERT INTO GameFixture (game_date, game_time, game_venue, match_id, team1_id, team2_id, teams_playing)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (game_date, game_time, stadium_name, match_id, team1_id, team2_id, fixture_description))
+        
+        conn.commit()
+        print("Game fixture added successfully.")
+    
     cursor.close()
 
 # Establish a connection to the SQLite database
@@ -47,5 +65,4 @@ conn = connect_to_database("sports.db")
 # Create the GameFixture table if it doesn't exist
 create_game_fixture_table(conn)
 
-# Insert a new game fixture into the database
-insert_game_fixture(conn, "2024-04-01", "15:00", "Stadium A", 1, 1, 2)
+
